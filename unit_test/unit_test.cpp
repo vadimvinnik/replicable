@@ -6,76 +6,70 @@
 
 #define ASSERT_EQUAL(a, b) (assert((a) == (b)))
 
-struct op_counter_t
-{
-    int ctor;
-    int copy;
-    int assign;
+struct op_counter_t {
+  int ctor;
+  int copy;
+  int assign;
 };
 
-op_counter_t operator-(op_counter_t const& p, op_counter_t const& q)
-{
-    return op_counter_t
-    {
-        p.ctor - q.ctor,
-        p.copy  - q.copy,
-        p.assign - q.assign
-    };
+op_counter_t operator-(op_counter_t const& p, op_counter_t const& q) {
+  return op_counter_t
+  {
+    p.ctor - q.ctor,
+    p.copy  - q.copy,
+    p.assign - q.assign
+  };
 }
 
-bool operator==(op_counter_t const& p, op_counter_t const& q)
-{
-    return p.ctor == q.ctor
-        && p.copy == q.copy
-        && p.assign == q.assign;
+bool operator==(op_counter_t const& p, op_counter_t const& q) {
+  return p.ctor == q.ctor
+    && p.copy == q.copy
+    && p.assign == q.assign;
 }
 
-std::ostream& operator<<(std::ostream& s, op_counter_t const& c)
-{
-    return s
-        << "(ctor: "
-        << c.ctor
-        << ", copy: "
-        << c.copy
-        << ", assign: "
-        << c.assign
-        << ")";
+std::ostream& operator<<(std::ostream& s, op_counter_t const& c) {
+  return s
+    << "(ctor: "
+    << c.ctor
+    << ", copy: "
+    << c.copy
+    << ", assign: "
+    << c.assign
+    << ")";
 }
 
-struct test_data
-{
-    test_data(int const x, std::string const& s)
-        : x(x), s(s)
-    {
-        ++op_counter.ctor;
-    }
+struct test_data {
+  test_data(int const x, std::string const& s)
+    : x(x), s(s)
+  {
+    ++op_counter.ctor;
+  }
 
-    test_data(test_data const& other)
-        : x(other.x), s(other.s)
-    {
-        ++op_counter.copy;
-    }
+  test_data(test_data const& other)
+    : x(other.x), s(other.s)
+  {
+    ++op_counter.copy;
+  }
 
-    test_data& operator=(test_data const& other)
-    {
-        x = other.x;
-        s = other.s;
+  test_data& operator=(test_data const& other) {
+    x = other.x;
+    s = other.s;
 
-        ++op_counter.assign;
+    ++op_counter.assign;
 
-        return *this;
-    }
+    return *this;
+  }
 
-    int x;
-    std::string s;
+  int x;
+  std::string s;
 
-    static op_counter_t op_counter;
+  static op_counter_t op_counter;
 };
 
 op_counter_t test_data::op_counter = { 0, 0, 0 };
 
-using test_data_containing_replicable = replicable_assigning<test_data>;
-using test_data_owning_replicable = replicable_replacing<test_data>;
+using test_data_containing_replicable = replicable::source_assigning<test_data>;
+using test_data_owning_replicable = replicable::source_replacing<test_data>;
 
 int main() {
   {
