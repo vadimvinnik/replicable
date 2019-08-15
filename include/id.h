@@ -19,7 +19,7 @@ namespace wrap_traits {
 
     template <typename ...Args>
     static wrapped_t construct(Args&& ...args) {
-      return wrapped_t(std::forward<Args>(args)...);
+      return wrapped_t { std::forward<Args>(args)... };
     }
 
     static void set(wrapped_t& lhs, value_t const& rhs) {
@@ -28,7 +28,7 @@ namespace wrap_traits {
 
     template <typename ...Args>
     static void set(wrapped_t& lhs, Args&& ...args) {
-      lhs = value_t(std::forward<Args>(args)...);
+      lhs = value_t { std::forward<Args>(args)... };
     }
 
     static ref_t get(wrapped_t& wrapped) {

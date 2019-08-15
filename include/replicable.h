@@ -30,8 +30,8 @@ private:
   class locked_source {
   public:
       explicit locked_source(source_t const& source)
-        : source(source)
-        , lock_(source.mutex_)
+        : source { source }
+        , lock_ { source.mutex_ }
       {}
 
       source_t const& source;
@@ -45,14 +45,14 @@ public:
 
   class replica {
       explicit replica(locked_source const& lock)
-        : source_(lock.source)
-        , wrapped_(copy(lock.source.wrapped_))
-        , version_(lock.source.version_)
+        : source_ { lock.source }
+        , wrapped_ { copy(lock.source.wrapped_) }
+        , version_ { lock.source.version_ }
       {}
 
   public:
       explicit replica(source_t const& source) :
-        replica(locked_source(source))
+        replica { locked_source(source) }
       {}
 
       replica(replica const&) = delete;
@@ -68,7 +68,7 @@ public:
 
       version_t ensure_up_to_date() {
         if (version_ != source_.version_) {
-          locked_source lock(source_);
+          locked_source lock { source_ };
           assign(wrapped_, lock.source.wrapped_);
           version_ = lock.source.version_;
         }
@@ -89,8 +89,8 @@ public:
 
   template <typename ...Args>
   explicit source_base(Args&& ...args)
-    : wrapped_(wrap_traits_t::construct(std::forward<Args>(args)...))
-    , version_(0)
+    : wrapped_ { wrap_traits_t::construct(std::forward<Args>(args)...) }
+    , version_ { 0 }
   {}
 
   source_base(source_t const&) = delete;
@@ -101,27 +101,27 @@ public:
   }
 
   void set(value_t const& value) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock { mutex_ };
     ++version_;
     wrap_traits_t::set(wrapped_, value);
   }
 
   template <typename Func>
   void modify(Func func) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock { mutex_ };
     ++version_;
     func(wrap_traits_t::get(wrapped_));
   }
 
   template <typename ...Args>
   void set(Args&& ...args) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock { mutex_ };
     ++version_;
     wrap_traits_t::set(wrapped_, std::forward<Args>(args)...);
   }
 
   void replace(wrapped_t&& wrapped) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock { mutex_ };
     ++version_;
     wrapped_ = wrapped;
   }
