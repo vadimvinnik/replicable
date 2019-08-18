@@ -12,30 +12,20 @@ namespace replicable {
 template <typename T, template<typename> typename Traits = wrap_traits::id>
 class source_base {
 public:
-  using wrap_traits_t = Traits<T>;
   using source_t = source_base<T, Traits>;
-  using wrapped_t = typename wrap_traits_t::wrapped_t;
-  using cref_t = typename wrap_traits_t::cref_t;
-  using version_t = unsigned int;
-
-private:
-  static wrapped_t copy(wrapped_t const& other) {
-    return wrap_traits_t::construct(wrap_traits_t::const_get(other));
-  }
-
-  static void assign(wrapped_t& lhs, wrapped_t const& rhs) {
-    wrap_traits_t::set(lhs, wrap_traits_t::const_get(rhs));
-  }
-
-public:
+  using wrap_traits_t = Traits<T>;
   using value_t = typename wrap_traits_t::value_t;
+  using wrapped_t = typename wrap_traits_t::wrapped_t;
+  using version_t = unsigned int;
 
   class replica {
       replica(
         std::lock_guard<std::mutex> lock,
         source_t const& source)
       : source_ { source }
-      , wrapped_ { copy(source.wrapped_) }
+      , wrapped_ { wrap_traits_t::construct(
+          wrap_traits_t::const_get(
+            source.wrapped_)) }
       , version_ { source.version_ }
       {}
 
@@ -55,13 +45,14 @@ public:
           source_.version_.load(std::memory_order_consume);
         if (version_ != source_version) {
           std::lock_guard<std::mutex> lock { source_.mutex_ };
-          assign(wrapped_, source_.wrapped_);
+          wrap_traits_t::set(
+              wrapped_,
+            wrap_traits_t::const_get(source_.wrapped_));
           version_ = source_version;
         }
       }
 
-      cref_t const_get() const
-      {
+      value_t const& const_get() const {
         return wrap_traits_t::const_get(wrapped_);
       }
 
@@ -90,13 +81,6 @@ public:
     wrap_traits_t::set(wrapped_, value);
   }
 
-  template <typename Func>
-  void modify(Func func) {
-    std::lock_guard<std::mutex> lock { mutex_ };
-    version_.fetch_add(1, std::memory_order_release);
-    func(wrap_traits_t::get(wrapped_));
-  }
-
   template <typename ...Args>
   void set(Args&& ...args) {
     std::lock_guard<std::mutex> lock { mutex_ };
@@ -104,10 +88,11 @@ public:
     wrap_traits_t::set(wrapped_, std::forward<Args>(args)...);
   }
 
-  void replace(wrapped_t&& wrapped) {
+  template <typename Func>
+  void modify(Func func) {
     std::lock_guard<std::mutex> lock { mutex_ };
     version_.fetch_add(1, std::memory_order_release);
-    wrapped_ = wrapped;
+    func(wrap_traits_t::get(wrapped_));
   }
 
 private:
